@@ -1,0 +1,144 @@
+id: https://example.org/bio-kg/schema
+name: bio_kg
+title: Biodiversity Knowledge Graph Schema
+description: >-
+  LinkML schema for iNaturalist observations modelled as a knowledge graph.
+  Observations are typed as DarwinCore Occurrences and BFO Processes;
+  taxa reference NCBITaxon via skos:closeMatch when resolvable;
+  observers are modelled with PROV-O.
+license: MIT
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  bio:     https://example.org/bio-kg/
+  dwc:     http://rs.tdwg.org/dwc/terms/
+  bfo:     http://purl.obolibrary.org/obo/BFO_
+  ncbi:    http://purl.obolibrary.org/obo/NCBITaxon_
+  prov:    http://www.w3.org/ns/prov#
+  dcterms: http://purl.org/dc/terms/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  rdfs:    http://www.w3.org/2000/01/rdf-schema#
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: bio
+default_range: string
+
+imports:
+  - linkml:types
+
+classes:
+  Observation:
+    description: A single observation of an organism at a place and time.
+    class_uri: dwc:Occurrence
+    mappings:
+      - bfo:0000015
+    slots:
+      - id
+      - scientific_name
+      - event_date
+      - decimal_latitude
+      - decimal_longitude
+      - observed_taxon
+      - observer
+      - derived_from
+      - quality_grade
+      - iconic_group
+
+  Taxon:
+    description: A taxonomic group (species, genus, family, etc.).
+    class_uri: dwc:Taxon
+    slots:
+      - id
+      - scientific_name
+      - common_name
+      - ncbi_close_match
+
+  Agent:
+    description: A person who recorded an observation.
+    class_uri: prov:Agent
+    slots:
+      - id
+      - name
+      - orcid
+      - inat_login
+
+slots:
+  id:
+    identifier: true
+    range: uriorcurie
+
+  scientific_name:
+    slot_uri: dwc:scientificName
+    range: string
+    required: true
+
+  common_name:
+    slot_uri: rdfs:label
+    range: string
+
+  event_date:
+    slot_uri: dwc:eventDate
+    range: date
+    required: true
+
+  decimal_latitude:
+    slot_uri: dwc:decimalLatitude
+    range: float
+    required: true
+    minimum_value: -90
+    maximum_value: 90
+
+  decimal_longitude:
+    slot_uri: dwc:decimalLongitude
+    range: float
+    required: true
+    minimum_value: -180
+    maximum_value: 180
+
+  observed_taxon:
+    slot_uri: bio:observedTaxon
+    range: Taxon
+    required: true
+
+  observer:
+    slot_uri: prov:wasAttributedTo
+    range: Agent
+    required: true
+
+  derived_from:
+    slot_uri: prov:wasDerivedFrom
+    range: uriorcurie
+    required: true
+
+  quality_grade:
+    slot_uri: bio:qualityGrade
+    range: QualityGrade
+    required: true
+
+  iconic_group:
+    slot_uri: bio:iconicGroup
+    range: string
+
+  name:
+    slot_uri: rdfs:label
+    range: string
+
+  orcid:
+    slot_uri: bio:orcid
+    range: uriorcurie
+    pattern: '^https://orcid\.org/[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{4}$'
+
+  inat_login:
+    slot_uri: bio:inatLogin
+    range: uriorcurie
+
+  ncbi_close_match:
+    slot_uri: skos:closeMatch
+    range: uriorcurie
+
+enums:
+  QualityGrade:
+    permissible_values:
+      research:
+      needs_id:
+      casual:
