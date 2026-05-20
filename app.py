@@ -41,6 +41,14 @@ st.markdown(
             background-color: transparent !important;
             box-shadow: none !important;
         }
+        /* Phone-friendly map height (default is ~600px, way too tall on a phone). */
+        @media (max-width: 768px) {
+            div[data-testid="stDeckGlJsonChart"],
+            .stDeckGlJsonChart,
+            iframe[title*="pydeck"] {
+                height: 320px !important;
+            }
+        }
     </style>
     """,
     unsafe_allow_html=True,
