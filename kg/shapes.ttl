@@ -1,4 +1,5 @@
 @prefix bio: <https://example.org/bio-kg/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dwc: <http://rs.tdwg.org/dwc/terms/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -11,7 +12,26 @@ dwc:Occurrence a sh:NodeShape ;
     rdfs:comment "A single observation of an organism at a place and time." ;
     sh:closed true ;
     sh:ignoredProperties ( rdf:type ) ;
-    sh:property [ sh:maxCount 1 ;
+    sh:property [ sh:datatype xsd:decimal ;
+            sh:maxCount 1 ;
+            sh:maxInclusive 180 ;
+            sh:minCount 1 ;
+            sh:minInclusive -180 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 4 ;
+            sh:path dwc:decimalLongitude ],
+        [ sh:datatype xsd:dateTime ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 11 ;
+            sh:path dcterms:created ],
+        [ sh:class prov:Agent ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 6 ;
+            sh:path prov:wasAttributedTo ],
+        [ sh:maxCount 1 ;
             sh:minCount 1 ;
             sh:nodeKind sh:IRI ;
             sh:order 7 ;
@@ -22,25 +42,17 @@ dwc:Occurrence a sh:NodeShape ;
             sh:nodeKind sh:Literal ;
             sh:order 1 ;
             sh:path dwc:scientificName ],
-        [ sh:datatype xsd:float ;
-            sh:maxCount 1 ;
-            sh:maxInclusive 90 ;
-            sh:minCount 1 ;
-            sh:minInclusive -90 ;
-            sh:nodeKind sh:Literal ;
-            sh:order 3 ;
-            sh:path dwc:decimalLatitude ],
         [ sh:datatype xsd:string ;
             sh:maxCount 1 ;
             sh:nodeKind sh:Literal ;
-            sh:order 9 ;
-            sh:path bio:iconicGroup ],
-        [ sh:class prov:Agent ;
+            sh:order 10 ;
+            sh:path dcterms:license ],
+        [ sh:datatype xsd:date ;
             sh:maxCount 1 ;
             sh:minCount 1 ;
-            sh:nodeKind sh:IRI ;
-            sh:order 6 ;
-            sh:path prov:wasAttributedTo ],
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path dwc:eventDate ],
         [ sh:maxCount 1 ;
             sh:nodeKind sh:IRI ;
             sh:order 0 ;
@@ -51,20 +63,19 @@ dwc:Occurrence a sh:NodeShape ;
             sh:nodeKind sh:IRI ;
             sh:order 5 ;
             sh:path bio:observedTaxon ],
-        [ sh:datatype xsd:float ;
+        [ sh:datatype xsd:string ;
             sh:maxCount 1 ;
-            sh:maxInclusive 180 ;
-            sh:minCount 1 ;
-            sh:minInclusive -180 ;
             sh:nodeKind sh:Literal ;
-            sh:order 4 ;
-            sh:path dwc:decimalLongitude ],
-        [ sh:datatype xsd:date ;
+            sh:order 9 ;
+            sh:path bio:iconicGroup ],
+        [ sh:datatype xsd:decimal ;
             sh:maxCount 1 ;
+            sh:maxInclusive 90 ;
             sh:minCount 1 ;
+            sh:minInclusive -90 ;
             sh:nodeKind sh:Literal ;
-            sh:order 2 ;
-            sh:path dwc:eventDate ],
+            sh:order 3 ;
+            sh:path dwc:decimalLatitude ],
         [ sh:in ( "research" "needs_id" "casual" ) ;
             sh:maxCount 1 ;
             sh:minCount 1 ;
@@ -78,6 +89,12 @@ dwc:Taxon a sh:NodeShape ;
     sh:ignoredProperties ( rdf:type ) ;
     sh:property [ sh:datatype xsd:string ;
             sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path dwc:scientificName ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
             sh:nodeKind sh:Literal ;
             sh:order 2 ;
             sh:path rdfs:label ],
@@ -85,12 +102,6 @@ dwc:Taxon a sh:NodeShape ;
             sh:nodeKind sh:IRI ;
             sh:order 0 ;
             sh:path bio:id ],
-        [ sh:datatype xsd:string ;
-            sh:maxCount 1 ;
-            sh:minCount 1 ;
-            sh:nodeKind sh:Literal ;
-            sh:order 1 ;
-            sh:path dwc:scientificName ],
         [ sh:maxCount 1 ;
             sh:nodeKind sh:IRI ;
             sh:order 3 ;
@@ -103,9 +114,8 @@ prov:Agent a sh:NodeShape ;
     sh:ignoredProperties ( rdf:type ) ;
     sh:property [ sh:maxCount 1 ;
             sh:nodeKind sh:IRI ;
-            sh:order 2 ;
-            sh:path bio:orcid ;
-            sh:pattern "^https://orcid\\.org/[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{4}$" ],
+            sh:order 3 ;
+            sh:path bio:inatLogin ],
         [ sh:datatype xsd:string ;
             sh:maxCount 1 ;
             sh:nodeKind sh:Literal ;
@@ -113,8 +123,9 @@ prov:Agent a sh:NodeShape ;
             sh:path rdfs:label ],
         [ sh:maxCount 1 ;
             sh:nodeKind sh:IRI ;
-            sh:order 3 ;
-            sh:path bio:inatLogin ],
+            sh:order 2 ;
+            sh:path bio:orcid ;
+            sh:pattern "^https://orcid\\.org/[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{4}$" ],
         [ sh:maxCount 1 ;
             sh:nodeKind sh:IRI ;
             sh:order 0 ;

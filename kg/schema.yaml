@@ -43,6 +43,8 @@ classes:
       - derived_from
       - quality_grade
       - iconic_group
+      - license
+      - created_at
 
   Taxon:
     description: A taxonomic group (species, genus, family, etc.).
@@ -83,14 +85,14 @@ slots:
 
   decimal_latitude:
     slot_uri: dwc:decimalLatitude
-    range: float
+    range: decimal
     required: true
     minimum_value: -90
     maximum_value: 90
 
   decimal_longitude:
     slot_uri: dwc:decimalLongitude
-    range: float
+    range: decimal
     required: true
     minimum_value: -180
     maximum_value: 180
@@ -135,6 +137,14 @@ slots:
   ncbi_close_match:
     slot_uri: skos:closeMatch
     range: uriorcurie
+
+  license:
+    slot_uri: dcterms:license
+    range: string
+
+  created_at:
+    slot_uri: dcterms:created
+    range: datetime
 
 enums:
   QualityGrade:
