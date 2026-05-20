@@ -41,12 +41,23 @@ st.markdown(
             background-color: transparent !important;
             box-shadow: none !important;
         }
-        /* Phone-friendly map height (default is ~600px, way too tall on a phone). */
+        /* Phone-friendly map height (default is ~600px, way too tall on a phone).
+           We have to constrain both the chart itself AND the element-container
+           Streamlit wraps it in, otherwise the wrapper still reserves the old
+           height and a big empty gap appears below the map. */
         @media (max-width: 768px) {
             div[data-testid="stDeckGlJsonChart"],
             .stDeckGlJsonChart,
-            iframe[title*="pydeck"] {
+            iframe[title*="pydeck"],
+            div[data-testid="stDeckGlJsonChart"] > div,
+            div[data-testid="stDeckGlJsonChart"] canvas {
                 height: 320px !important;
+                max-height: 320px !important;
+            }
+            div.element-container:has(div[data-testid="stDeckGlJsonChart"]) {
+                height: 320px !important;
+                max-height: 320px !important;
+                overflow: hidden;
             }
         }
     </style>
