@@ -1,5 +1,6 @@
 """Streamlit chat app: natural-language interface over the biodiversity knowledge graph."""
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -14,7 +15,7 @@ from rag.pipeline import extract_citations, nl_to_sparql, summarize_rows
 log = get_logger("app")
 
 st.set_page_config(
-    page_title="Biodiversity Knowledge Graph",
+    page_title="Ask Hamburg Biodiversity",
     layout="wide",
 )
 
@@ -113,9 +114,21 @@ def get_all_observation_points(_store: ox.Store, data_mtime: float) -> pd.DataFr
 
 
 @st.cache_data(show_spinner=False)
-def get_species_points(_store: ox.Store, species_key: tuple, data_mtime: float) -> pd.DataFrame:
+def get_species_points(
+    _store: ox.Store,
+    species_key: tuple,
+    data_mtime: float,
+    bbox: tuple[float, float, float, float] | None = None,
+) -> pd.DataFrame:
     del data_mtime
     species_inline = " ".join(f'"{s}"' for s in species_key)
+    bbox_filter = ""
+    if bbox:
+        lat_min, lat_max, lon_min, lon_max = bbox
+        bbox_filter = (
+            f"  FILTER (?lat >= {lat_min} && ?lat <= {lat_max} && "
+            f"?lon >= {lon_min} && ?lon <= {lon_max}) "
+        )
     qr = _store.query(
         "PREFIX bio: <https://example.org/bio-kg/> "
         "PREFIX dwc: <http://rs.tdwg.org/dwc/terms/> "
@@ -128,6 +141,7 @@ def get_species_points(_store: ox.Store, species_key: tuple, data_mtime: float) 
         f"         dwc:decimalLongitude ?lon . "
         f"  ?taxon dwc:scientificName ?species . "
         f"  OPTIONAL {{ ?taxon rdfs:seeAlso ?wiki }} "
+        f"{bbox_filter}"
         f"}}"
     )
     rows = []
@@ -238,9 +252,45 @@ def render_species_map(df: pd.DataFrame, species_list: list[str], key: str) -> N
         )
 
 
-def update_map_from_result(df: pd.DataFrame | None) -> None:
+_CMP_RE = re.compile(r"\?(\w+)\s*(>=|<=|>|<)\s*(-?\d+(?:\.\d+)?)")
+
+
+def extract_bbox(sparql: str) -> tuple[float, float, float, float] | None:
+    """If the SPARQL contains lat/lon range FILTERs, return (lat_min, lat_max,
+    lon_min, lon_max). The map's follow-up query reuses the same bbox so the
+    plotted observations stay inside the user's geographic constraint."""
+    lat_lo = lat_hi = lon_lo = lon_hi = None
+    for var, op, num in _CMP_RE.findall(sparql):
+        try:
+            n = float(num)
+        except ValueError:
+            continue
+        v = var.lower()
+        if "lat" in v:
+            if op in (">=", ">"):
+                lat_lo = n if lat_lo is None else min(lat_lo, n)
+            else:
+                lat_hi = n if lat_hi is None else max(lat_hi, n)
+        elif "lon" in v or "long" in v:
+            if op in (">=", ">"):
+                lon_lo = n if lon_lo is None else min(lon_lo, n)
+            else:
+                lon_hi = n if lon_hi is None else max(lon_hi, n)
+    if None not in (lat_lo, lat_hi, lon_lo, lon_hi):
+        return (lat_lo, lat_hi, lon_lo, lon_hi)
+    return None
+
+
+def update_map_from_result(df: pd.DataFrame | None, sparql: str = "") -> None:
     if df is None or df.empty:
         return
+
+    bbox = extract_bbox(sparql) if sparql else None
+    if bbox:
+        st.session_state["map_bbox"] = bbox
+    else:
+        st.session_state.pop("map_bbox", None)
+
     for col in df.columns:
         vals = df[col].dropna().astype(str)
         if vals.empty:
@@ -270,7 +320,10 @@ def render_map_for_state(store: ox.Store) -> None:
         else:
             render_species_map(df_pts, species_in_view, key="obs_map")
     elif map_species:
-        df_pts = get_species_points(store, tuple(map_species), DATA_FILE.stat().st_mtime)
+        map_bbox = st.session_state.get("map_bbox")
+        df_pts = get_species_points(
+            store, tuple(map_species), DATA_FILE.stat().st_mtime, bbox=map_bbox,
+        )
         st.markdown(
             f"#### Observation map — **{len(map_species)}** species from your last query"
         )
@@ -284,7 +337,7 @@ def render_map_for_state(store: ox.Store) -> None:
         df_all = df_all.copy()
         # Forest green dots matching the theme; semi-transparent so the ~10K
         # points form a density gradient instead of one solid blob.
-        df_all["color"] = [[45, 80, 22, 160]] * len(df_all)
+        df_all["color"] = [[45, 80, 22, 100]] * len(df_all)
         all_deck = pdk.Deck(
             map_style="light",
             initial_view_state=pdk.ViewState(
@@ -298,10 +351,12 @@ def render_map_for_state(store: ox.Store) -> None:
                     data=df_all,
                     get_position="[lon, lat]",
                     get_fill_color="color",
+                    get_line_color=[40, 40, 40, 200],
+                    line_width_min_pixels=1,
                     get_radius=80,
-                    radius_min_pixels=3,
-                    radius_max_pixels=8,
-                    stroked=False,
+                    radius_min_pixels=6,
+                    radius_max_pixels=14,
+                    stroked=True,
                     pickable=False,
                 ),
             ],
@@ -348,14 +403,21 @@ store = load_store(
 with st.sidebar:
     st.markdown("### About")
     st.markdown(
-        "Data from [iNaturalist](https://www.inaturalist.org/). Observations "
-        "are modelled as a knowledge graph that you can query in plain English."
+        "**Ask Hamburg Biodiversity** is a semantic search app for "
+        "wildlife observations in the Hamburg region, created by "
+        "Emre Gürsoy.\n\n"
+        "Species observations sourced from [iNaturalist](https://www.inaturalist.org/) "
+        "are validated and represented as an RDF knowledge graph using "
+        "Darwin Core, BFO, and PROV-O ontologies.\n\n"
+        "Users can ask questions in natural language. An LLM translates "
+        "the question into SPARQL, queries the knowledge graph, and "
+        "generates an answer from the retrieved results."
     )
 
-st.title("Biodiversity Knowledge Graph")
+st.title("Ask Hamburg Biodiversity")
 st.caption(
-    "Ask in plain English about Hamburg's research-grade iNaturalist observations. "
-    "The map below switches to the species in your latest answer."
+    "Each dot is an observation of a species. "
+    "The map updates based on user questions."
 )
 
 # --- Map (at the top, reflects the latest state) ---------------------------
@@ -429,7 +491,7 @@ if prompt and prompt.strip():
                         column_config=link_column_config(df),
                     )
 
-                st.write("**Step 3** — Composing grounded answer...")
+                st.write("**Step 3** — Writing the answer...")
                 rows = df.to_dict("records")
                 answer = summarize_rows(client, prompt, sparql, rows)
                 citations = extract_citations(rows)
@@ -458,5 +520,5 @@ if prompt and prompt.strip():
         "df_records": df.to_dict("records") if df is not None else None,
         "citations": citations,
     })
-    update_map_from_result(df)
+    update_map_from_result(df, sparql=sparql)
     st.rerun()
