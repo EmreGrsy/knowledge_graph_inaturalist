@@ -404,10 +404,9 @@ with st.sidebar:
     st.markdown("### About")
     st.markdown(
         "**Ask Hamburg Biodiversity** is a semantic search app for "
-        "wildlife observations in the Hamburg region, created by "
-        "Emre Gürsoy.\n\n"
-        "Species observations sourced from [iNaturalist](https://www.inaturalist.org/) "
-        "are validated and represented as an RDF knowledge graph using "
+        "wildlife observations in Hamburg, created by Emre Gürsoy.\n\n"
+        "Species observations are sourced from [iNaturalist](https://www.inaturalist.org/), "
+        "validated, and represented as an RDF knowledge graph using "
         "Darwin Core, BFO, and PROV-O ontologies.\n\n"
         "Users can ask questions in natural language. An LLM translates "
         "the question into SPARQL, queries the knowledge graph, and "
