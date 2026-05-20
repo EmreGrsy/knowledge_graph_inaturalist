@@ -1,4 +1,4 @@
-"""Streamlit app: natural-language interface over the biodiversity knowledge graph."""
+"""Streamlit chat app: natural-language interface over the biodiversity knowledge graph."""
 
 from pathlib import Path
 
@@ -16,6 +16,33 @@ log = get_logger("app")
 st.set_page_config(
     page_title="Biodiversity Knowledge Graph",
     layout="wide",
+)
+
+# Headings in forest green to fit the nature aspect; make past user questions
+# share the same cream background as the chat_input box for a uniform look.
+st.markdown(
+    """
+    <style>
+        h1, h2, h3, h4, h5, h6 {
+            color: #2D5016 !important;
+        }
+        /* Past user question bubbles share the cream tone with the input. */
+        div[data-testid="stChatMessage"]:has(div[data-testid="chatAvatarIcon-user"]) {
+            background-color: #E8E2D5 !important;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+        }
+        /* Drop the white avatar circle so the leaf blends into whatever
+           background it's sitting on (cream bubble or page). */
+        [data-testid="stChatMessageAvatar"],
+        [data-testid="chatAvatarIcon-user"],
+        [data-testid="chatAvatarIcon-assistant"] {
+            background-color: transparent !important;
+            box-shadow: none !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 DATA_FILE   = Path("data/observations.ttl")
@@ -151,13 +178,10 @@ def get_obs_points(_store: ox.Store, obs_key: tuple, data_mtime: float) -> pd.Da
 
 
 def render_species_map(df: pd.DataFrame, species_list: list[str], key: str) -> None:
-    """Pydeck scatter map, one colour per species. Hover shows the scientific
-    name; click a species in the legend below to open its Wikipedia article."""
     colors = {s: PALETTE[i % len(PALETTE)] for i, s in enumerate(species_list)}
     df = df.copy()
     df["color"] = df["species"].map(lambda s: colors.get(s, [128, 128, 128]) + [230])
 
-    # Species -> first wiki, for the legend below the map.
     species_to_wiki: dict[str, str] = {}
     for s in species_list:
         wikis = [w for w in df.loc[df["species"] == s, "wiki"].dropna().astype(str) if w]
@@ -195,7 +219,6 @@ def render_species_map(df: pd.DataFrame, species_list: list[str], key: str) -> N
     )
     st.pydeck_chart(deck, use_container_width=True, key=key)
 
-    # Legend, clickable (no arrows).
     cols = st.columns(min(len(species_list), 5))
     for i, s in enumerate(species_list):
         r, g, b = colors[s]
@@ -216,7 +239,6 @@ def render_species_map(df: pd.DataFrame, species_list: list[str], key: str) -> N
 
 
 def update_map_from_result(df: pd.DataFrame | None) -> None:
-    """Prefer observation URIs (most specific); fall back to species."""
     if df is None or df.empty:
         return
     for col in df.columns:
@@ -232,6 +254,87 @@ def update_map_from_result(df: pd.DataFrame | None) -> None:
         if species:
             st.session_state["map_species"] = species[:10]
             st.session_state.pop("map_obs_uris", None)
+
+
+def render_map_for_state(store: ox.Store) -> None:
+    map_obs_uris = st.session_state.get("map_obs_uris")
+    map_species  = st.session_state.get("map_species")
+    if map_obs_uris:
+        df_pts = get_obs_points(store, tuple(map_obs_uris), DATA_FILE.stat().st_mtime)
+        species_in_view = df_pts["species"].dropna().unique().tolist() if not df_pts.empty else []
+        st.markdown(
+            f"#### Observation map — **{len(df_pts)}** observation(s) from your last query"
+        )
+        if df_pts.empty:
+            st.info("Your query returned observation URIs but their coordinates aren't in the snapshot.")
+        else:
+            render_species_map(df_pts, species_in_view, key="obs_map")
+    elif map_species:
+        df_pts = get_species_points(store, tuple(map_species), DATA_FILE.stat().st_mtime)
+        st.markdown(
+            f"#### Observation map — **{len(map_species)}** species from your last query"
+        )
+        if df_pts.empty:
+            st.info("Your query returned species, but the snapshot has no observations for them.")
+        else:
+            render_species_map(df_pts, map_species, key="species_map")
+    else:
+        st.markdown("#### Observation map")
+        df_all = get_all_observation_points(store, DATA_FILE.stat().st_mtime)
+        df_all = df_all.copy()
+        # Forest green dots matching the theme; semi-transparent so the ~10K
+        # points form a density gradient instead of one solid blob.
+        df_all["color"] = [[45, 80, 22, 160]] * len(df_all)
+        all_deck = pdk.Deck(
+            map_style="light",
+            initial_view_state=pdk.ViewState(
+                latitude=float(df_all["lat"].mean()),
+                longitude=float(df_all["lon"].mean()),
+                zoom=10,
+            ),
+            layers=[
+                pdk.Layer(
+                    "ScatterplotLayer",
+                    data=df_all,
+                    get_position="[lon, lat]",
+                    get_fill_color="color",
+                    get_radius=80,
+                    radius_min_pixels=3,
+                    radius_max_pixels=8,
+                    stroked=False,
+                    pickable=False,
+                ),
+            ],
+        )
+        st.pydeck_chart(all_deck, use_container_width=True, key="all_obs_map")
+
+
+def render_assistant_message(msg: dict) -> None:
+    """Render a saved assistant message, including its details expander."""
+    sparql = msg.get("sparql")
+    df_records = msg.get("df_records")
+    if sparql or df_records:
+        with st.expander("Details — generated SPARQL and result rows", expanded=False):
+            if sparql:
+                st.code(sparql, language="sparql")
+            if df_records:
+                df_disp = pd.DataFrame(df_records)
+                st.dataframe(
+                    df_disp,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config=link_column_config(df_disp),
+                )
+    if msg.get("content"):
+        st.markdown(msg["content"])
+    if msg.get("citations"):
+        st.markdown(
+            "**Sources:** "
+            + " · ".join(
+                f"[obs/{c.rsplit('/', 1)[-1]}]({c})"
+                for c in msg["citations"][:10]
+            )
+        )
 
 
 # --- page body -------------------------------------------------------------
@@ -251,12 +354,20 @@ with st.sidebar:
 
 st.title("Biodiversity Knowledge Graph")
 st.caption(
-    "Ask in plain English. The map below switches from all observations "
-    "to the species in your answer; click a name in the legend to open its Wikipedia article."
+    "Ask in plain English about Hamburg's research-grade iNaturalist observations. "
+    "The map below switches to the species in your latest answer."
 )
 
-# --- GraphRAG --------------------------------------------------------------
+# --- Map (at the top, reflects the latest state) ---------------------------
 
+render_map_for_state(store)
+
+# --- Chat thread -----------------------------------------------------------
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# OpenAI key check (same logic as before)
 _api_key = ""
 _secrets_error: str | None = None
 try:
@@ -265,7 +376,6 @@ except Exception as _exc:
     _secrets_error = str(_exc)
 _has_key = _api_key.startswith("sk-")
 
-st.markdown("#### Ask in English (GraphRAG)")
 if _secrets_error:
     st.error(
         f"Could not read `.streamlit/secrets.toml`: {_secrets_error}. "
@@ -273,104 +383,80 @@ if _secrets_error:
     )
 elif not _has_key:
     st.info(
-        "Add `OPENAI_API_KEY` to `.streamlit/secrets.toml` to enable the "
-        "natural-language interface."
+        "Add `OPENAI_API_KEY` to `.streamlit/secrets.toml` to enable the chat."
     )
 
-with st.form("nl_ask_form", clear_on_submit=False, border=False):
-    nl_question = st.text_input(
-        "Ask in English",
-        placeholder="e.g., What are the top 5 birds in Hamburg?",
-        key="nl_question",
-        label_visibility="collapsed",
-        disabled=not _has_key,
-    )
-    nl_submitted = st.form_submit_button(
-        "Ask",
-        type="primary",
-        disabled=not _has_key,
-    )
+# Render the saved conversation. Both roles get the same leaf avatar so the
+# thread reads in one consistent colour rather than red-face vs yellow-robot.
+for msg in st.session_state.chat_history:
+    with st.chat_message(msg["role"], avatar="🌿"):
+        if msg["role"] == "assistant":
+            render_assistant_message(msg)
+        else:
+            st.markdown(msg["content"])
 
-if nl_submitted and nl_question and nl_question.strip():
+# New input (pinned at bottom of the page by Streamlit)
+prompt = st.chat_input(
+    "Ask about Hamburg biodiversity...",
+    disabled=not _has_key,
+)
+
+if prompt and prompt.strip():
+    prompt = prompt.strip()
+
+    # 1) Echo the user's question immediately in the thread.
+    with st.chat_message("user", avatar="🌿"):
+        st.markdown(prompt)
+
+    # 2) Run the pipeline inside an assistant bubble.
     client = OpenAI(api_key=_api_key, timeout=60.0)
-    nl_sparql, nl_df, nl_answer, nl_citations = "", None, "", []
-    with st.status("Running pipeline...", expanded=True) as status:
-        try:
-            st.write("**Step 1** — Translating to SPARQL...")
-            nl_sparql = nl_to_sparql(client, nl_question.strip())
-            st.code(nl_sparql, language="sparql")
+    sparql, df, answer, citations = "", None, "", []
+    with st.chat_message("assistant", avatar="🌿"):
+        with st.status("Thinking...", expanded=True) as status:
+            try:
+                st.write("**Step 1** — Translating to SPARQL...")
+                sparql = nl_to_sparql(client, prompt)
+                st.code(sparql, language="sparql")
 
-            st.write("**Step 2** — Querying the graph...")
-            nl_df = run_sparql(store, nl_sparql)
-            st.write(f"Got **{len(nl_df)}** row(s).")
-            if not nl_df.empty:
-                st.dataframe(
-                    nl_df,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config=link_column_config(nl_df),
+                st.write("**Step 2** — Querying the graph...")
+                df = run_sparql(store, sparql)
+                st.write(f"Got **{len(df)}** row(s).")
+                if not df.empty:
+                    st.dataframe(
+                        df,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config=link_column_config(df),
+                    )
+
+                st.write("**Step 3** — Composing grounded answer...")
+                rows = df.to_dict("records")
+                answer = summarize_rows(client, prompt, sparql, rows)
+                citations = extract_citations(rows)
+                status.update(label="Done", state="complete")
+            except Exception as exc:
+                status.update(label=f"Pipeline failed: {exc}", state="error")
+                log.warning("graphRAG failed: %s", exc)
+                answer = "Sorry, I couldn't answer that. See the status panel above."
+        if answer:
+            st.markdown(answer)
+            if citations:
+                st.markdown(
+                    "**Sources:** "
+                    + " · ".join(
+                        f"[obs/{c.rsplit('/', 1)[-1]}]({c})"
+                        for c in citations[:10]
+                    )
                 )
 
-            st.write("**Step 3** — Composing grounded answer...")
-            nl_rows = nl_df.to_dict("records")
-            nl_answer = summarize_rows(
-                client, nl_question.strip(), nl_sparql, nl_rows,
-            )
-            nl_citations = extract_citations(nl_rows)
-            status.update(label="Done", state="complete")
-        except Exception as exc:
-            status.update(label=f"Pipeline failed: {exc}", state="error")
-            log.warning("graphRAG failed: %s", exc)
-
-    update_map_from_result(nl_df)
-
-    if nl_answer:
-        # Persist the answer so it survives reruns triggered by map / button clicks.
-        st.session_state["last_answer"] = {
-            "question":  nl_question.strip(),
-            "answer":    nl_answer,
-            "citations": nl_citations,
-        }
-
-# --- Render the most recent answer (from session state) --------------------
-
-_last = st.session_state.get("last_answer")
-if _last:
-    st.markdown("#### Answer")
-    st.markdown(_last["answer"])
-    if _last.get("citations"):
-        st.markdown(
-            "**Sources:** "
-            + " · ".join(
-                f"[obs/{c.rsplit('/', 1)[-1]}]({c})"
-                for c in _last["citations"][:10]
-            )
-        )
-
-# --- Map (under the answer) -------------------------------------------------
-
-map_obs_uris = st.session_state.get("map_obs_uris")
-map_species  = st.session_state.get("map_species")
-
-if map_obs_uris:
-    df_pts = get_obs_points(store, tuple(map_obs_uris), DATA_FILE.stat().st_mtime)
-    species_in_view = df_pts["species"].dropna().unique().tolist() if not df_pts.empty else []
-    st.markdown(
-        f"#### Observation map — **{len(df_pts)}** observation(s) from your last query"
-    )
-    if df_pts.empty:
-        st.info("Your query returned observation URIs but their coordinates aren't in the snapshot.")
-    else:
-        render_species_map(df_pts, species_in_view, key="obs_map")
-elif map_species:
-    df_pts = get_species_points(store, tuple(map_species), DATA_FILE.stat().st_mtime)
-    st.markdown(
-        f"#### Observation map — **{len(map_species)}** species from your last query"
-    )
-    if df_pts.empty:
-        st.info("Your query returned species, but the snapshot has no observations for them.")
-    else:
-        render_species_map(df_pts, map_species, key="species_map")
-else:
-    st.markdown("#### Observation map")
-    st.map(get_all_observation_points(store, DATA_FILE.stat().st_mtime), size=8)
+    # 3) Persist messages and refresh the map state.
+    st.session_state.chat_history.append({"role": "user", "content": prompt})
+    st.session_state.chat_history.append({
+        "role":      "assistant",
+        "content":   answer,
+        "sparql":    sparql,
+        "df_records": df.to_dict("records") if df is not None else None,
+        "citations": citations,
+    })
+    update_map_from_result(df)
+    st.rerun()
