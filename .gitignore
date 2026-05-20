@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Env files
+.env
+.env.local
+
+# Logs (keep the dir via .gitkeep but ignore actual logs)
+logs/*.log
+logs/*.log.*
+
+# Generated artifacts that can be rebuilt from LinkML
+# (kept commented; we want to commit these so reviewers see them)
+# kg/schema.owl
+# kg/shapes.ttl
+
+# Caches
+data/cache/
+data/raw/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

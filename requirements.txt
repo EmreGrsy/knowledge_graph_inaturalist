@@ -1,0 +1,14 @@
+# UI
+streamlit>=1.40
+streamlit-agraph>=0.0.45
+altair>=5.0
+
+# Data + semantics
+requests>=2.31
+linkml>=1.7
+rdflib>=7.0
+pyoxigraph>=0.4
+pyshacl>=0.25
+
+# LLM
+openai>=1.30
