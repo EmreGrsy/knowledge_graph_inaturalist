@@ -429,7 +429,7 @@ render_map_for_state(store)
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# OpenAI key check (same logic as before)
+# OpenAI key check
 _api_key = ""
 _secrets_error: str | None = None
 try:

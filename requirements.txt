@@ -1,7 +1,5 @@
 # UI
 streamlit>=1.40
-streamlit-agraph>=0.0.45
-altair>=5.0
 
 # Data + semantics
 requests>=2.31

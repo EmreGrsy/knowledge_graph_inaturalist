@@ -47,7 +47,7 @@ Important notes:
     or with a property path:
         ?obs bio:observedTaxon/dwc:scientificName ?species .
   - All observations in this snapshot are research-grade and around Hamburg, Germany.
-  - The graph contains ~2000 observations and ~574 distinct taxa.
+  - The graph contains roughly ten thousand observations.
 """
 
 

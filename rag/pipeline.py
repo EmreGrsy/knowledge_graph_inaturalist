@@ -1,20 +1,17 @@
 """GraphRAG pipeline: natural language -> SPARQL -> grounded answer.
 
-The pipeline runs two LLM calls with a deterministic SPARQL query in
-between. Call ``ask`` for the full end-to-end pipeline; or use
-``nl_to_sparql``, ``rows_from_query``, ``summarize_rows`` separately if
-you want to display each stage's progress live (as the Streamlit app does).
+The Streamlit app calls these in order per question:
+``extract_place_name`` -> ``geocode_in_hamburg`` -> ``nl_to_sparql``
+-> (graph executes the SPARQL) -> ``summarize_rows`` -> ``extract_citations``.
 """
 
 from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, field
 from datetime import date
 from functools import lru_cache
 
-import pyoxigraph as ox
 import requests
 from openai import OpenAI
 
@@ -119,28 +116,6 @@ def ensure_prefixes(sparql: str) -> str:
     return prelude + "\n" + sparql
 
 
-@dataclass
-class AskResult:
-    question: str
-    sparql: str
-    rows: list[dict]
-    answer: str
-    citations: list[str] = field(default_factory=list)
-    error: str | None = None
-
-
-def _term_to_py(term) -> object:
-    if term is None:
-        return None
-    return term.value if hasattr(term, "value") else str(term)
-
-
-def rows_from_query(qr) -> list[dict]:
-    """Materialize a pyoxigraph QuerySolutions iterator into a list of dicts."""
-    var_names = [v.value for v in qr.variables]
-    return [{v: _term_to_py(sol[v]) for v in var_names} for sol in qr]
-
-
 def _strip_markdown_fence(text: str) -> str:
     """If the LLM wrapped its SPARQL in ``` fences despite instructions, strip them."""
     t = text.strip()
@@ -235,27 +210,3 @@ def extract_citations(rows: list[dict]) -> list[str]:
     return cites
 
 
-def ask(question: str, store: ox.Store, client: OpenAI) -> AskResult:
-    """Convenience wrapper: run the full pipeline and return an AskResult."""
-    sparql = ""
-    rows: list[dict] = []
-    try:
-        sparql = nl_to_sparql(client, question)
-        rows = rows_from_query(store.query(sparql))
-        answer = summarize_rows(client, question, sparql, rows)
-        return AskResult(
-            question=question,
-            sparql=sparql,
-            rows=rows,
-            answer=answer,
-            citations=extract_citations(rows),
-        )
-    except Exception as exc:
-        log.exception("graphRAG pipeline failed")
-        return AskResult(
-            question=question,
-            sparql=sparql,
-            rows=rows,
-            answer="",
-            error=str(exc),
-        )
