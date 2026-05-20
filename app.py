@@ -5,9 +5,11 @@ from pathlib import Path
 import pandas as pd
 import pyoxigraph as ox
 import streamlit as st
+from openai import OpenAI
 from streamlit_agraph import Config, Edge, Node, agraph
 
 from kg.logging_config import get_logger
+from rag.pipeline import extract_citations, nl_to_sparql, summarize_rows
 
 log = get_logger("app")
 
@@ -197,6 +199,99 @@ st.caption(
     "results are clickable. Visualize any URI as a graph in the section "
     "at the bottom."
 )
+
+_api_key = ""
+_secrets_error: str | None = None
+try:
+    _api_key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
+except Exception as _exc:
+    _secrets_error = str(_exc)
+_has_key = _api_key.startswith("sk-")
+
+st.markdown("#### Ask in English (GraphRAG)")
+if _secrets_error:
+    st.error(
+        f"Could not read `.streamlit/secrets.toml`: {_secrets_error}. "
+        "TOML string values must be in double quotes, e.g. "
+        '`OPENAI_API_KEY = \"sk-...\"`.'
+    )
+elif not _has_key:
+    st.info(
+        "Add `OPENAI_API_KEY` to `.streamlit/secrets.toml` to enable the "
+        "natural-language interface. You can still write SPARQL directly below."
+    )
+
+with st.form("nl_ask_form", clear_on_submit=False, border=False):
+    nl_question = st.text_input(
+        "Ask in English",
+        placeholder="e.g., What's the most observed bird in Hamburg?",
+        key="nl_question",
+        label_visibility="collapsed",
+        disabled=not _has_key,
+    )
+    nl_submitted = st.form_submit_button(
+        "Ask",
+        type="primary",
+        disabled=not _has_key,
+    )
+
+if nl_submitted and nl_question and nl_question.strip():
+    # 60s per OpenAI call so a hung request fails visibly rather than spinning forever.
+    client = OpenAI(api_key=_api_key, timeout=60.0)
+    nl_sparql, nl_df, nl_answer, nl_citations = "", None, "", []
+    with st.status("Running GraphRAG pipeline...", expanded=True) as status:
+        try:
+            st.write("**Step 1** — Translating to SPARQL...")
+            nl_sparql = nl_to_sparql(client, nl_question.strip())
+            st.code(nl_sparql, language="sparql")
+
+            st.write("**Step 2** — Querying the graph...")
+            nl_df = run_sparql(store, nl_sparql)
+            st.write(f"Got **{len(nl_df)}** row(s).")
+            if not nl_df.empty:
+                st.dataframe(
+                    nl_df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config=link_column_config(nl_df),
+                )
+
+            st.write("**Step 3** — Composing grounded answer...")
+            nl_rows = nl_df.to_dict("records")
+            nl_answer = summarize_rows(
+                client, nl_question.strip(), nl_sparql, nl_rows,
+            )
+            nl_citations = extract_citations(nl_rows)
+            status.update(label="GraphRAG pipeline complete", state="complete")
+        except Exception as exc:
+            status.update(label=f"Pipeline failed: {exc}", state="error")
+            log.warning("graphRAG failed: %s", exc)
+
+    # Auto-populate the SPARQL editor with the generated query for review.
+    if nl_sparql:
+        st.session_state.sparql_text = nl_sparql
+
+    if nl_answer:
+        st.markdown("#### Answer")
+        st.markdown(nl_answer)
+        if nl_citations:
+            st.markdown(
+                "**Sources:** "
+                + " · ".join(
+                    f"[obs/{c.rsplit('/', 1)[-1]}]({c})"
+                    for c in nl_citations[:10]
+                )
+            )
+
+    if nl_df is not None and not nl_df.empty:
+        st.dataframe(
+            nl_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config=link_column_config(nl_df),
+        )
+
+st.markdown("---")
 
 st.markdown("#### Example queries")
 cols = st.columns(len(CANNED_QUERIES))
