@@ -1,0 +1,124 @@
+@prefix bio: <https://example.org/bio-kg/> .
+@prefix dwc: <http://rs.tdwg.org/dwc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+dwc:Occurrence a sh:NodeShape ;
+    rdfs:comment "A single observation of an organism at a place and time." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 7 ;
+            sh:path prov:wasDerivedFrom ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path dwc:scientificName ],
+        [ sh:datatype xsd:float ;
+            sh:maxCount 1 ;
+            sh:maxInclusive 90 ;
+            sh:minCount 1 ;
+            sh:minInclusive -90 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 3 ;
+            sh:path dwc:decimalLatitude ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 9 ;
+            sh:path bio:iconicGroup ],
+        [ sh:class prov:Agent ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 6 ;
+            sh:path prov:wasAttributedTo ],
+        [ sh:maxCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 0 ;
+            sh:path bio:id ],
+        [ sh:class dwc:Taxon ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 5 ;
+            sh:path bio:observedTaxon ],
+        [ sh:datatype xsd:float ;
+            sh:maxCount 1 ;
+            sh:maxInclusive 180 ;
+            sh:minCount 1 ;
+            sh:minInclusive -180 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 4 ;
+            sh:path dwc:decimalLongitude ],
+        [ sh:datatype xsd:date ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path dwc:eventDate ],
+        [ sh:in ( "research" "needs_id" "casual" ) ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:order 8 ;
+            sh:path bio:qualityGrade ] ;
+    sh:targetClass dwc:Occurrence .
+
+dwc:Taxon a sh:NodeShape ;
+    rdfs:comment "A taxonomic group (species, genus, family, etc.)." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path rdfs:label ],
+        [ sh:maxCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 0 ;
+            sh:path bio:id ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path dwc:scientificName ],
+        [ sh:maxCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 3 ;
+            sh:path skos:closeMatch ] ;
+    sh:targetClass dwc:Taxon .
+
+prov:Agent a sh:NodeShape ;
+    rdfs:comment "A person who recorded an observation." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:maxCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 2 ;
+            sh:path bio:orcid ;
+            sh:pattern "^https://orcid\\.org/[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{4}$" ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path rdfs:label ],
+        [ sh:maxCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 3 ;
+            sh:path bio:inatLogin ],
+        [ sh:maxCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 0 ;
+            sh:path bio:id ] ;
+    sh:targetClass prov:Agent .
+
+
