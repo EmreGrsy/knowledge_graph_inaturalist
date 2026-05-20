@@ -2,7 +2,6 @@
 @prefix bio: <https://example.org/bio-kg/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dwc: <http://rs.tdwg.org/dwc/terms/> .
-@prefix linkml: <https://w3id.org/linkml/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -13,53 +12,43 @@
 bio:Observation a owl:Class ;
     rdfs:label "Observation" ;
     rdfs:subClassOf [ a owl:Restriction ;
-            owl:allValuesFrom xsd:string ;
-            owl:onProperty bio:scientific_name ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:created_at ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom xsd:dateTime ;
-            owl:onProperty bio:created_at ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom xsd:date ;
-            owl:onProperty bio:event_date ],
-        [ a owl:Restriction ;
-            owl:minCardinality 0 ;
-            owl:onProperty bio:iconic_group ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:event_date ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom xsd:anyURI ;
-            owl:onProperty bio:id ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom xsd:anyURI ;
-            owl:onProperty bio:derived_from ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom xsd:string ;
-            owl:onProperty bio:iconic_group ],
-        [ a owl:Restriction ;
             owl:minCardinality 1 ;
             owl:onProperty bio:event_date ],
         [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:decimal [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive -90 ] ) ] [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:maxInclusive 90 ] ) ] ) ] ;
+            owl:onProperty bio:decimal_latitude ],
+        [ a owl:Restriction ;
             owl:maxCardinality 1 ;
+            owl:onProperty bio:iconic_group ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom bio:Agent ;
             owl:onProperty bio:observer ],
         [ a owl:Restriction ;
             owl:maxCardinality 1 ;
-            owl:onProperty bio:quality_grade ],
+            owl:onProperty bio:decimal_latitude ],
         [ a owl:Restriction ;
-            owl:minCardinality 0 ;
-            owl:onProperty bio:created_at ],
+            owl:maxCardinality 1 ;
+            owl:onProperty bio:event_date ],
         [ a owl:Restriction ;
-            owl:allValuesFrom xsd:string ;
-            owl:onProperty bio:license ],
+            owl:maxCardinality 1 ;
+            owl:onProperty bio:observed_taxon ],
         [ a owl:Restriction ;
             owl:minCardinality 1 ;
             owl:onProperty bio:observed_taxon ],
         [ a owl:Restriction ;
             owl:allValuesFrom bio:Taxon ;
             owl:onProperty bio:observed_taxon ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty bio:observer ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty bio:decimal_latitude ],
         [ a owl:Restriction ;
             owl:maxCardinality 1 ;
             owl:onProperty bio:decimal_longitude ],
@@ -72,64 +61,29 @@ bio:Observation a owl:Class ;
                                 owl:withRestrictions ( [ xsd:maxInclusive 180 ] ) ] ) ] ;
             owl:onProperty bio:decimal_longitude ],
         [ a owl:Restriction ;
-            owl:allValuesFrom bio:Agent ;
-            owl:onProperty bio:observer ],
+            owl:maxCardinality 1 ;
+            owl:onProperty bio:id ],
         [ a owl:Restriction ;
             owl:minCardinality 1 ;
             owl:onProperty bio:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty bio:observer ],
         [ a owl:Restriction ;
             owl:minCardinality 1 ;
             owl:onProperty bio:decimal_longitude ],
         [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:observed_taxon ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:decimal_latitude ],
+            owl:allValuesFrom xsd:date ;
+            owl:onProperty bio:event_date ],
         [ a owl:Restriction ;
             owl:minCardinality 0 ;
-            owl:onProperty bio:license ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:license ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
             owl:onProperty bio:iconic_group ],
         [ a owl:Restriction ;
-            owl:minCardinality 1 ;
-            owl:onProperty bio:decimal_latitude ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom [ a rdfs:Datatype ;
-                    owl:intersectionOf ( xsd:decimal [ a rdfs:Datatype ;
-                                owl:onDatatype xsd:integer ;
-                                owl:withRestrictions ( [ xsd:minInclusive -90 ] ) ] [ a rdfs:Datatype ;
-                                owl:onDatatype xsd:integer ;
-                                owl:withRestrictions ( [ xsd:maxInclusive 90 ] ) ] ) ] ;
-            owl:onProperty bio:decimal_latitude ],
-        [ a owl:Restriction ;
-            owl:minCardinality 1 ;
-            owl:onProperty bio:scientific_name ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
+            owl:allValuesFrom xsd:anyURI ;
             owl:onProperty bio:id ],
         [ a owl:Restriction ;
-            owl:minCardinality 1 ;
-            owl:onProperty bio:observer ],
-        [ a owl:Restriction ;
-            owl:minCardinality 1 ;
-            owl:onProperty bio:derived_from ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom bio:QualityGrade ;
-            owl:onProperty bio:quality_grade ],
-        [ a owl:Restriction ;
-            owl:minCardinality 1 ;
-            owl:onProperty bio:quality_grade ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:scientific_name ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:derived_from ] ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty bio:iconic_group ] ;
     skos:definition "A single observation of an organism at a place and time." ;
     skos:exactMatch dwc:Occurrence ;
     skos:inScheme bio:schema ;
@@ -139,103 +93,61 @@ bio:schema.owl.ttl a owl:Ontology ;
     rdfs:label "bio_kg" ;
     dcterms:license "MIT" ;
     dcterms:title "Biodiversity Knowledge Graph Schema" ;
-    skos:definition "LinkML schema for iNaturalist observations modelled as a knowledge graph. Observations are typed as DarwinCore Occurrences and BFO Processes; taxa reference NCBITaxon via skos:closeMatch when resolvable; observers are modelled with PROV-O." .
+    skos:definition "LinkML schema for iNaturalist observations modelled as a knowledge graph. Observations are typed as DarwinCore Occurrences and BFO Processes; taxa carry Wikipedia links via rdfs:seeAlso; observers are PROV-O agents." .
 
 bio:Agent a owl:Class ;
     rdfs:label "Agent" ;
     rdfs:subClassOf [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:inat_login ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:orcid ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
+            owl:allValuesFrom xsd:anyURI ;
             owl:onProperty bio:id ],
-        [ a owl:Restriction ;
-            owl:minCardinality 0 ;
-            owl:onProperty bio:orcid ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:name ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom [ a rdfs:Datatype ;
-                    owl:intersectionOf ( xsd:anyURI [ a rdfs:Datatype ;
-                                owl:onDatatype xsd:string ;
-                                owl:withRestrictions ( [ xsd:pattern "^https://orcid\\.org/[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{4}$" ] ) ] ) ] ;
-            owl:onProperty bio:orcid ],
         [ a owl:Restriction ;
             owl:minCardinality 1 ;
             owl:onProperty bio:id ],
         [ a owl:Restriction ;
-            owl:allValuesFrom xsd:anyURI ;
-            owl:onProperty bio:inat_login ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom xsd:string ;
-            owl:onProperty bio:name ],
-        [ a owl:Restriction ;
-            owl:minCardinality 0 ;
-            owl:onProperty bio:name ],
-        [ a owl:Restriction ;
-            owl:minCardinality 0 ;
-            owl:onProperty bio:inat_login ],
-        [ a owl:Restriction ;
-            owl:allValuesFrom xsd:anyURI ;
+            owl:maxCardinality 1 ;
             owl:onProperty bio:id ] ;
-    skos:definition "A person who recorded an observation." ;
+    skos:definition "A person who recorded an observation. The IRI itself is the observer's iNaturalist user URL (or ORCID URL when available); no further data is stored on the agent node beyond the type declaration." ;
     skos:exactMatch prov:Agent ;
     skos:inScheme bio:schema .
-
-<https://example.org/bio-kg/QualityGrade#casual> a owl:Class ;
-    rdfs:label "casual" ;
-    rdfs:subClassOf bio:QualityGrade .
-
-<https://example.org/bio-kg/QualityGrade#needs_id> a owl:Class ;
-    rdfs:label "needs_id" ;
-    rdfs:subClassOf bio:QualityGrade .
-
-<https://example.org/bio-kg/QualityGrade#research> a owl:Class ;
-    rdfs:label "research" ;
-    rdfs:subClassOf bio:QualityGrade .
 
 bio:Taxon a owl:Class ;
     rdfs:label "Taxon" ;
     rdfs:subClassOf [ a owl:Restriction ;
-            owl:allValuesFrom xsd:anyURI ;
-            owl:onProperty bio:ncbi_close_match ],
-        [ a owl:Restriction ;
-            owl:minCardinality 0 ;
-            owl:onProperty bio:ncbi_close_match ],
-        [ a owl:Restriction ;
-            owl:minCardinality 0 ;
-            owl:onProperty bio:common_name ],
+            owl:maxCardinality 1 ;
+            owl:onProperty bio:scientific_name ],
         [ a owl:Restriction ;
             owl:allValuesFrom xsd:string ;
-            owl:onProperty bio:common_name ],
+            owl:onProperty bio:scientific_name ],
         [ a owl:Restriction ;
             owl:allValuesFrom xsd:anyURI ;
-            owl:onProperty bio:id ],
+            owl:onProperty bio:wikipedia_url ],
         [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
-            owl:onProperty bio:id ],
+            owl:minCardinality 0 ;
+            owl:onProperty bio:wikipedia_url ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty bio:scientific_name ],
         [ a owl:Restriction ;
             owl:minCardinality 1 ;
             owl:onProperty bio:id ],
         [ a owl:Restriction ;
             owl:maxCardinality 1 ;
-            owl:onProperty bio:scientific_name ],
-        [ a owl:Restriction ;
-            owl:maxCardinality 1 ;
             owl:onProperty bio:common_name ],
         [ a owl:Restriction ;
-            owl:allValuesFrom xsd:string ;
-            owl:onProperty bio:scientific_name ],
+            owl:maxCardinality 1 ;
+            owl:onProperty bio:wikipedia_url ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty bio:common_name ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:anyURI ;
+            owl:onProperty bio:id ],
         [ a owl:Restriction ;
             owl:maxCardinality 1 ;
-            owl:onProperty bio:ncbi_close_match ],
+            owl:onProperty bio:id ],
         [ a owl:Restriction ;
-            owl:minCardinality 1 ;
-            owl:onProperty bio:scientific_name ] ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty bio:common_name ] ;
     skos:definition "A taxonomic group (species, genus, family, etc.)." ;
     skos:exactMatch dwc:Taxon ;
     skos:inScheme bio:schema .
@@ -243,11 +155,6 @@ bio:Taxon a owl:Class ;
 bio:common_name a owl:DatatypeProperty ;
     rdfs:label "common_name" ;
     rdfs:range xsd:string ;
-    skos:inScheme bio:schema .
-
-bio:created_at a owl:DatatypeProperty ;
-    rdfs:label "created_at" ;
-    rdfs:range xsd:dateTime ;
     skos:inScheme bio:schema .
 
 bio:decimal_latitude a owl:DatatypeProperty ;
@@ -270,11 +177,6 @@ bio:decimal_longitude a owl:DatatypeProperty ;
                         owl:withRestrictions ( [ xsd:maxInclusive 180 ] ) ] ) ] ;
     skos:inScheme bio:schema .
 
-bio:derived_from a owl:DatatypeProperty ;
-    rdfs:label "derived_from" ;
-    rdfs:range xsd:anyURI ;
-    skos:inScheme bio:schema .
-
 bio:event_date a owl:DatatypeProperty ;
     rdfs:label "event_date" ;
     rdfs:range xsd:date ;
@@ -283,26 +185,6 @@ bio:event_date a owl:DatatypeProperty ;
 bio:iconic_group a owl:DatatypeProperty ;
     rdfs:label "iconic_group" ;
     rdfs:range xsd:string ;
-    skos:inScheme bio:schema .
-
-bio:inat_login a owl:DatatypeProperty ;
-    rdfs:label "inat_login" ;
-    rdfs:range xsd:anyURI ;
-    skos:inScheme bio:schema .
-
-bio:license a owl:DatatypeProperty ;
-    rdfs:label "license" ;
-    rdfs:range xsd:string ;
-    skos:inScheme bio:schema .
-
-bio:name a owl:DatatypeProperty ;
-    rdfs:label "name" ;
-    rdfs:range xsd:string ;
-    skos:inScheme bio:schema .
-
-bio:ncbi_close_match a owl:DatatypeProperty ;
-    rdfs:label "ncbi_close_match" ;
-    rdfs:range xsd:anyURI ;
     skos:inScheme bio:schema .
 
 bio:observed_taxon a owl:ObjectProperty ;
@@ -315,30 +197,14 @@ bio:observer a owl:ObjectProperty ;
     rdfs:range bio:Agent ;
     skos:inScheme bio:schema .
 
-bio:orcid a owl:DatatypeProperty ;
-    rdfs:label "orcid" ;
-    rdfs:range [ a rdfs:Datatype ;
-            owl:intersectionOf ( xsd:anyURI [ a rdfs:Datatype ;
-                        owl:onDatatype xsd:string ;
-                        owl:withRestrictions ( [ xsd:pattern "^https://orcid\\.org/[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{4}$" ] ) ] ) ] ;
-    skos:inScheme bio:schema .
-
-bio:quality_grade a owl:ObjectProperty ;
-    rdfs:label "quality_grade" ;
-    rdfs:range bio:QualityGrade ;
-    skos:inScheme bio:schema .
-
-bio:QualityGrade a owl:Class ;
-    rdfs:label "QualityGrade" ;
-    owl:unionOf ( <https://example.org/bio-kg/QualityGrade#research> <https://example.org/bio-kg/QualityGrade#needs_id> <https://example.org/bio-kg/QualityGrade#casual> ) ;
-    skos:inScheme bio:schema ;
-    linkml:permissible_values <https://example.org/bio-kg/QualityGrade#casual>,
-        <https://example.org/bio-kg/QualityGrade#needs_id>,
-        <https://example.org/bio-kg/QualityGrade#research> .
-
 bio:scientific_name a owl:DatatypeProperty ;
     rdfs:label "scientific_name" ;
     rdfs:range xsd:string ;
+    skos:inScheme bio:schema .
+
+bio:wikipedia_url a owl:DatatypeProperty ;
+    rdfs:label "wikipedia_url" ;
+    rdfs:range xsd:anyURI ;
     skos:inScheme bio:schema .
 
 bio:id a owl:DatatypeProperty ;

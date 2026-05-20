@@ -4,21 +4,17 @@ title: Biodiversity Knowledge Graph Schema
 description: >-
   LinkML schema for iNaturalist observations modelled as a knowledge graph.
   Observations are typed as DarwinCore Occurrences and BFO Processes;
-  taxa reference NCBITaxon via skos:closeMatch when resolvable;
-  observers are modelled with PROV-O.
+  taxa carry Wikipedia links via rdfs:seeAlso; observers are PROV-O agents.
 license: MIT
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  bio:     https://example.org/bio-kg/
-  dwc:     http://rs.tdwg.org/dwc/terms/
-  bfo:     http://purl.obolibrary.org/obo/BFO_
-  ncbi:    http://purl.obolibrary.org/obo/NCBITaxon_
-  prov:    http://www.w3.org/ns/prov#
-  dcterms: http://purl.org/dc/terms/
-  skos:    http://www.w3.org/2004/02/skos/core#
-  rdfs:    http://www.w3.org/2000/01/rdf-schema#
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  linkml: https://w3id.org/linkml/
+  bio:    https://example.org/bio-kg/
+  dwc:    http://rs.tdwg.org/dwc/terms/
+  bfo:    http://purl.obolibrary.org/obo/BFO_
+  prov:   http://www.w3.org/ns/prov#
+  rdfs:   http://www.w3.org/2000/01/rdf-schema#
+  xsd:    http://www.w3.org/2001/XMLSchema#
 
 default_prefix: bio
 default_range: string
@@ -34,17 +30,12 @@ classes:
       - bfo:0000015
     slots:
       - id
-      - scientific_name
       - event_date
       - decimal_latitude
       - decimal_longitude
       - observed_taxon
       - observer
-      - derived_from
-      - quality_grade
       - iconic_group
-      - license
-      - created_at
 
   Taxon:
     description: A taxonomic group (species, genus, family, etc.).
@@ -53,16 +44,16 @@ classes:
       - id
       - scientific_name
       - common_name
-      - ncbi_close_match
+      - wikipedia_url
 
   Agent:
-    description: A person who recorded an observation.
+    description: >-
+      A person who recorded an observation. The IRI itself is the observer's
+      iNaturalist user URL (or ORCID URL when available); no further data
+      is stored on the agent node beyond the type declaration.
     class_uri: prov:Agent
     slots:
       - id
-      - name
-      - orcid
-      - inat_login
 
 slots:
   id:
@@ -107,48 +98,10 @@ slots:
     range: Agent
     required: true
 
-  derived_from:
-    slot_uri: prov:wasDerivedFrom
-    range: uriorcurie
-    required: true
-
-  quality_grade:
-    slot_uri: bio:qualityGrade
-    range: QualityGrade
-    required: true
-
   iconic_group:
     slot_uri: bio:iconicGroup
     range: string
 
-  name:
-    slot_uri: rdfs:label
-    range: string
-
-  orcid:
-    slot_uri: bio:orcid
+  wikipedia_url:
+    slot_uri: rdfs:seeAlso
     range: uriorcurie
-    pattern: '^https://orcid\.org/[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{4}$'
-
-  inat_login:
-    slot_uri: bio:inatLogin
-    range: uriorcurie
-
-  ncbi_close_match:
-    slot_uri: skos:closeMatch
-    range: uriorcurie
-
-  license:
-    slot_uri: dcterms:license
-    range: string
-
-  created_at:
-    slot_uri: dcterms:created
-    range: datetime
-
-enums:
-  QualityGrade:
-    permissible_values:
-      research:
-      needs_id:
-      casual:

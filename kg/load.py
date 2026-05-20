@@ -2,8 +2,8 @@
 
 Run as ``python -m kg.load --limit 2000``. Defaults target a bounding box
 around Hamburg. Each record is mapped onto the LinkML schema (DwC + BFO +
-PROV-O + NCBITaxon prefixes), validated with pyshacl, and merged into the
-output graph only if it conforms.
+PROV-O + Wikipedia via rdfs:seeAlso), validated with pyshacl, and merged
+into the output graph only if it conforms.
 """
 
 from __future__ import annotations
@@ -27,8 +27,6 @@ BIO  = Namespace("https://example.org/bio-kg/")
 DWC  = Namespace("http://rs.tdwg.org/dwc/terms/")
 BFO  = Namespace("http://purl.obolibrary.org/obo/BFO_")
 PROV = Namespace("http://www.w3.org/ns/prov#")
-DCT  = Namespace("http://purl.org/dc/terms/")
-SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 
 INAT_API   = "https://api.inaturalist.org/v2/observations"
 USER_AGENT = "bio-kg-loader (github.com/EmreGrsy/knowledge_graph_inaturalist)"
@@ -36,9 +34,9 @@ PER_PAGE   = 30
 RATE_LIMIT = 1.0  # seconds between page requests
 
 FIELDS = ",".join([
-    "id", "uuid", "observed_on", "location", "quality_grade",
-    "license_code", "created_at", "uri",
-    "taxon.id", "taxon.name", "taxon.preferred_common_name", "taxon.iconic_taxon_name",
+    "id", "observed_on", "location", "uri",
+    "taxon.id", "taxon.name", "taxon.preferred_common_name",
+    "taxon.iconic_taxon_name", "taxon.wikipedia_url",
     "user.id", "user.login", "user.orcid",
 ])
 
@@ -106,23 +104,20 @@ def build_record(rec: dict, graph: Graph) -> URIRef | None:
         except ValueError:
             log.warning("unparseable location on %s: %r", uri, loc)
         else:
-            # Pass strings so rdflib constructs Decimal values; passing
-            # a Python float keeps the value-type as float and SHACL rejects.
             graph.add((obs, DWC.decimalLatitude,  Literal(lat_s, datatype=XSD.decimal)))
             graph.add((obs, DWC.decimalLongitude, Literal(lng_s, datatype=XSD.decimal)))
 
     taxon = rec.get("taxon") or {}
-    if name := taxon.get("name"):
-        graph.add((obs, DWC.scientificName, Literal(name)))
-
     if tid := taxon.get("id"):
         taxon_iri = URIRef(f"https://www.inaturalist.org/taxa/{tid}")
         graph.add((obs, BIO.observedTaxon, taxon_iri))
         graph.add((taxon_iri, RDF.type, DWC.Taxon))
-        if name:
+        if name := taxon.get("name"):
             graph.add((taxon_iri, DWC.scientificName, Literal(name)))
         if common := taxon.get("preferred_common_name"):
             graph.add((taxon_iri, RDFS.label, Literal(common)))
+        if wiki := taxon.get("wikipedia_url"):
+            graph.add((taxon_iri, RDFS.seeAlso, URIRef(wiki)))
 
     user = rec.get("user") or {}
     orcid = user.get("orcid")
@@ -136,34 +131,18 @@ def build_record(rec: dict, graph: Graph) -> URIRef | None:
     if agent is not None:
         graph.add((obs, PROV.wasAttributedTo, agent))
         graph.add((agent, RDF.type, PROV.Agent))
-        if login:
-            graph.add((agent, BIO.inatLogin, URIRef(f"https://www.inaturalist.org/people/{login}")))
-        if orcid:
-            graph.add((agent, BIO.orcid, URIRef(f"https://orcid.org/{orcid}")))
 
-    if inat_id := rec.get("id"):
-        graph.add((obs, PROV.wasDerivedFrom,
-                   URIRef(f"https://api.inaturalist.org/v2/observations/{inat_id}")))
-
-    if q := rec.get("quality_grade"):
-        graph.add((obs, BIO.qualityGrade, Literal(q)))
     if icon := taxon.get("iconic_taxon_name"):
         graph.add((obs, BIO.iconicGroup, Literal(icon)))
-    if lic := rec.get("license_code"):
-        graph.add((obs, DCT.license, Literal(lic)))
-    if created := rec.get("created_at"):
-        graph.add((obs, DCT.created, Literal(created, datatype=XSD.dateTime)))
 
     return obs
 
 
 def _bind_prefixes(g: Graph) -> None:
-    g.bind("bio", BIO)
-    g.bind("dwc", DWC)
-    g.bind("bfo", BFO)
+    g.bind("bio",  BIO)
+    g.bind("dwc",  DWC)
+    g.bind("bfo",  BFO)
     g.bind("prov", PROV)
-    g.bind("dcterms", DCT)
-    g.bind("skos", SKOS)
 
 
 def _summarize_report(report_text: str) -> str:

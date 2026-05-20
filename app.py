@@ -21,7 +21,10 @@ SCHEMA_FILE = Path("kg/schema.owl")
 
 
 @st.cache_resource(show_spinner="Loading knowledge graph...")
-def load_store() -> ox.Store:
+def load_store(data_mtime: float, schema_mtime: float) -> ox.Store:
+    # mtimes go into the cache key so the store auto-reloads when the
+    # underlying files change (e.g., after `make load`).
+    del data_mtime, schema_mtime
     store = ox.Store()
     store.bulk_load(path=str(DATA_FILE),   format=ox.RdfFormat.TURTLE)
     store.bulk_load(path=str(SCHEMA_FILE), format=ox.RdfFormat.TURTLE)
@@ -108,11 +111,13 @@ SELECT (COUNT(?o) AS ?n) WHERE {
   ?o a dwc:Occurrence .
 }""",
     "Top 10 species": """\
+PREFIX bio: <https://example.org/bio-kg/>
 PREFIX dwc: <http://rs.tdwg.org/dwc/terms/>
 
 SELECT ?species (COUNT(?obs) AS ?n) WHERE {
-  ?obs a dwc:Occurrence ;
-       dwc:scientificName ?species .
+  ?obs    a dwc:Occurrence ;
+          bio:observedTaxon  ?taxon .
+  ?taxon  dwc:scientificName ?species .
 }
 GROUP BY ?species
 ORDER BY DESC(?n)
@@ -132,12 +137,27 @@ PREFIX bio: <https://example.org/bio-kg/>
 PREFIX dwc: <http://rs.tdwg.org/dwc/terms/>
 
 SELECT ?obs ?species ?date WHERE {
-  ?obs a dwc:Occurrence ;
-       bio:iconicGroup     "Aves" ;
-       dwc:scientificName  ?species ;
-       dwc:eventDate       ?date .
+  ?obs    a dwc:Occurrence ;
+          bio:iconicGroup    "Aves" ;
+          bio:observedTaxon  ?taxon ;
+          dwc:eventDate      ?date .
+  ?taxon  dwc:scientificName ?species .
 }
 ORDER BY DESC(?date)
+LIMIT 20""",
+    "Species with Wikipedia": """\
+PREFIX bio: <https://example.org/bio-kg/>
+PREFIX dwc: <http://rs.tdwg.org/dwc/terms/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?species ?wiki (COUNT(?obs) AS ?n) WHERE {
+  ?obs    a dwc:Occurrence ;
+          bio:observedTaxon  ?taxon .
+  ?taxon  dwc:scientificName ?species ;
+          rdfs:seeAlso        ?wiki .
+}
+GROUP BY ?species ?wiki
+ORDER BY DESC(?n)
 LIMIT 20""",
 }
 
@@ -149,7 +169,10 @@ def use_canned(query: str) -> None:
 # --- page body ---------------------------------------------------------------
 
 
-store = load_store()
+store = load_store(
+    DATA_FILE.stat().st_mtime,
+    SCHEMA_FILE.stat().st_mtime,
+)
 
 with st.sidebar:
     st.markdown("### Graph stats")
